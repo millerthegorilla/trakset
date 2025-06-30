@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+  Asset Transfer History
+{% endblock title %}
+{% block extra_javascript %}
+  <script type="module" src="{% static 'js/sortable_table.js' %}" defer></script>
+{% endblock extra_javascript %}
+{% block content %}
+  <div class="container">
+    <h1>Asset Transfer History</h1>
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <form method="get" action="{% url 'trakset:asset_transfer_history' %}">
+          <div class="input-group">
+            <input type="text"
+                   name="search"
+                   class="form-control"
+                   placeholder="Search by asset name or ID"
+                   value="{{ request.GET.search }}" />
+            <button class="btn btn-primary" type="submit">Search</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% if transfers %}
+      <table id="sortableTable" class="table table-striped">
+        <thead>
+          <tr class="sortable_row">
+            <th>Asset Name</th>
+            <th>Asset ID</th>
+            <th>Asset Location</th>
+            <th>Asset Type</th>
+            <th>From User</th>
+            <th>To User</th>
+            <th>Date Transferred</th>
+            <th>Transfer id</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for transfer in transfers %}
+            <tr>
+              <td>{{ transfer.asset.name }}</td>
+              <td>{{ transfer.asset.id }}</td>
+              <td>{{ transfer.asset.location }}</td>
+              <td>{{ transfer.asset.type }}</td>
+              <td>{{ transfer.from_user.username }}</td>
+              <td>{{ transfer.to_user.username }}</td>
+              <td>{{ transfer.created|date:"Y-m-d H:i:s" }}</td>
+              <td>
+                <a href="{% url 'trakset:asset_transfer_detail_view' transfer.pk %}">{{ transfer.id }}</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <!-- Pagination -->
+      {% if is_paginated %}
+        <nav aria-label="Page navigation">
+          <ul class="pagination">
+            {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link"
+                   href="?page={{ page_obj.previous_page_number }}&search={{ request.GET.search }}">Previous</a>
+              </li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+              <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                <a class="page-link"
+                   href="?page={{ num }}&search={{ request.GET.search }}">{{ num }}</a>
+              </li>
+            {% endfor %}
+            {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link"
+                   href="?page={{ page_obj.next_page_number }}&search={{ request.GET.search }}">Next</a>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="container">
+        <h2>No asset transfer history found.</h2>
+      </div>
+    {% endif %}
+  </div>
+{% endblock content %}

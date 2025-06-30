@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% load crispy_forms_tags %}
+
+{% block title %}
+  Confirm Delete Asset
+{% endblock title %}
+{% block content %}
+  <h1>Confirm Cancel Asset Transfer</h1>
+  <p>You are about to cancel the asset transfer "{{ object }}". This action cannot be undone.</p>
+  <p>Please confirm that you want to proceed with the cancellation.</p>
+  <form method="post">
+    {% csrf_token %}
+    <p>Are you sure you want to cancel the {{ object }}?</p>
+    <div class="d-flex flex-row justify-content-between">
+      <button type="submit" class="btn btn-primary">Confim</button>
+      <button type="button"
+              class="btn btn-primary"
+              onclick="window.location.href='{% url 'trakset:asset_transfer_detail_view' object.pk %}'">
+        Don't cancel.
+      </button>
+    </div>
+  </form>
+{% endblock content %}

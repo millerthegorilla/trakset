@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <br />
+  <h3>{{ asset_transfer }}</h3>
+  <h4>with id: {{ asset_transfer.id }}</h4>
+  <br />
+  {% for note in asset_transfer.notes.all %}<h4>Note {{ forloop.counter }}. {{ note.text }}</h4>{% endfor %}
+{% endblock content %}

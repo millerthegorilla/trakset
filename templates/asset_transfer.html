@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% load crispy_forms_tags %}
+
+{% block title %}
+  Asset Transfer Complete
+{% endblock title %}
+{% block content %}
+  <h1>Asset Transferred Successfully</h1>
+  <h2>Asset Transfer id: {{ transfer.id }}</h2>
+  <h3>Date: {{ transfer.created | date:"SHORT_DATE_FORMAT" }} at {{ transfer.created | time }}</h3>
+  <p>
+    The asset "{{ asset_name }}" used at "{{ asset_location }}" has been successfully transferred to "{{ request.user }}".
+  </p>
+  <h3>Asset Transfer</h3>
+  <div class="d-flex flex-column">
+    <form action="" method="post">
+      <input type="hidden" name="transfer_id" value="{{ asset_transfer.id }}" />
+      {% csrf_token %}
+      <table>
+        {{ form|crispy }}
+      </table>
+      <div class="d-flex flex-row justify-content-between">
+        <button type="submit" class="btn btn-primary">Update</button>
+        <button type="button"
+                class="btn btn-primary"
+                onclick="window.location.href='{% url 'trakset:asset_transfer_cancel' transfer.id %}'">Cancel</button>
+      </div>
+    </form>
+    <br />
+  </div>
+  <h4>If you are concerned about this transfer, please take a photo or note down the asset transfer id above.</h4>
+  <br />
+{% endblock content %}
