@@ -76,13 +76,15 @@ class AssetTransferView(FormView):
 
     def post(self, request, uuid):
         form = AssetTransferNotesForm(request.POST)
-        asset_transfer = AssetTransfer.objects.get(asset__unique_id=self.kwargs["uuid"])
+        asset_transfer = AssetTransfer.objects.filter(
+            to_user=request.user,
+            asset__unique_id=self.kwargs["uuid"]).last()
         notes = asset_transfer.notes.last()
         form_text = form.data.get("text", "")
         if notes is None and form_text != "":
             asset_transfer.notes.create(text=form_text)
             asset_transfer.save()
-        elif notes is not None and form_text != "":
+        elif notes is not None:
             text_to_save = form_text
             asset_transfer.notes.create(text=text_to_save)
             asset_transfer.save()
@@ -105,7 +107,7 @@ class AssetTransferCancelView(DeleteView):
         context.pop("object")
         return redirect(
             reverse(
-                "asset_transfer_cancel_success",
+                "trakset:asset_transfer_cancel_success",
                 kwargs={
                     "deleted_transfer_id": transfer_id,
                     "deleted_transfer_from_user": transfer_from_user,

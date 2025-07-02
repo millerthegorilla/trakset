@@ -25,7 +25,7 @@ urlpatterns = [
         name="asset_transfer_notes_added",
     ),
     path(
-        "asset_transfer/cancel_success/",
+        "asset_transfer/cancel_success/<str:deleted_transfer_id>/<str:deleted_transfer_from_user>/",
         TemplateView.as_view(template_name="asset_transfer_cancel_success.html"),
         name="asset_transfer_cancel_success",
     ),
