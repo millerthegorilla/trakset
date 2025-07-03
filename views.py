@@ -139,9 +139,15 @@ class AssetTransferHistoryView(View):
             messages.info(request, "No assets found.")
         else:
             context = {"assets": assets}
-            transfers = AssetTransfer.objects.filter(
-                asset=assets.first(),
-            ).order_by("-created")
+            breakpoint()
+            if request.GET.get('deleted_cb') == 'on':
+                transfers = AssetTransfer.global_objects.filter(
+                    asset=assets.first(),
+                ).order_by("-created")
+            else:
+                transfers = AssetTransfer.objects.filter(
+                    asset=assets.first(),
+                ).order_by("-created")
             if not transfers:
                 messages.info(request, "Asset has no asset transfer history.")
             else:

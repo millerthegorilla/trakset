@@ -16,11 +16,16 @@
         <form method="get" action="{% url 'trakset:asset_transfer_history' %}">
           <div class="input-group">
             <input type="text"
-                   name="search"
-                   class="form-control"
-                   placeholder="Search by asset name or ID"
-                   value="{{ request.GET.search }}" />
+            name="search"
+            class="form-control"
+            placeholder="Search by asset name or ID"
+            value="{{ request.GET.search }}" />
             <button class="btn btn-primary" type="submit">Search</button>
+            <div class="d-flex align-items-center">
+              <input class="mx-2" type="checkbox" id="show_deleted" name="deleted_cb">
+              <label for="show_deleted">Show deleted asset transfers?</label>
+            </div>
+            <br>
           </div>
         </form>
       </div>
@@ -36,6 +41,8 @@
             <th>From User</th>
             <th>To User</th>
             <th>Date Transferred</th>
+            <th>Has been deleted</th>
+            <th>Date deleted</th>
             <th>Transfer id</th>
           </tr>
         </thead>
@@ -49,6 +56,8 @@
               <td>{{ transfer.from_user.username }}</td>
               <td>{{ transfer.to_user.username }}</td>
               <td>{{ transfer.created|date:"Y-m-d H:i:s" }}</td>
+              <td>{{ transfer.is_deleted }}</td>
+              <td>{{ transfer.deleted_at|date:"Y-m-d H:i:s" }}</td>
               <td>
                 <a href="{% url 'trakset:asset_transfer_detail_view' transfer.pk %}">{{ transfer.id }}</a>
               </td>

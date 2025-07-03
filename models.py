@@ -5,6 +5,8 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
+from django_softdelete.models import SoftDeleteModel
+
 from trakset_app.users.models import (
     User,  # Assuming User model is defined in user.models
 )
@@ -63,7 +65,7 @@ class Asset(models.Model):
     current_holder = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
     name = models.CharField(max_length=255, blank=False, null=False)
     description = models.TextField(blank=True, default="")
-    serial_number = models.CharField(max_length=100, blank=True)
+    serial_number = models.CharField(max_length=100, blank=True, default="")
     type = models.ForeignKey(
         AssetType,
         null=False,
@@ -96,7 +98,7 @@ class Asset(models.Model):
         return reverse("trakset_asset_update", args=(self.pk,))
 
 
-class AssetTransfer(models.Model):
+class AssetTransfer(SoftDeleteModel):
     # Fields
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(auto_now_add=True, editable=False)

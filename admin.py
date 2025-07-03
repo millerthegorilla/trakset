@@ -91,6 +91,8 @@ class AssetTransferAdmin(admin.ModelAdmin):
         "to_user",
         "get_notes_text",
         "created",
+        "is_deleted",
+        "deleted_at",
         "last_updated",
     )
     search_fields = ("asset__name", "from_user__username", "to_user__username")
@@ -107,6 +109,13 @@ class AssetTransferAdmin(admin.ModelAdmin):
             idx += 1
         return format_html(html_string)
 
-    # def get_queryset(self, request):
+    def get_queryset(self, request):
     #     return super().get_queryset(request).select_related("asset",
     # "from_user", "to_user")
+        qs = self.model.global_objects.get_queryset()
+
+        # we need this from the superclass method
+        ordering = self.ordering or () # otherwise we might try to *None, which is bad ;)
+        if ordering:
+            qs = qs.order_by(*ordering)
+        return qs
