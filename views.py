@@ -139,7 +139,6 @@ class AssetTransferHistoryView(View):
             messages.info(request, "No assets found.")
         else:
             context = {"assets": assets}
-            breakpoint()
             if request.GET.get('deleted_cb') == 'on':
                 transfers = AssetTransfer.global_objects.filter(
                     asset=assets.first(),
