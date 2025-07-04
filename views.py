@@ -46,6 +46,7 @@ class AssetTransferView(FormView):
                 from_user=asset.current_holder,
                 to_user=request.user,
             )
+            asset.current_holder = request.user
         context_data = self.get_context_data(**kwargs)
         context_data["transfer"] = asset_transfer
         return self.render_to_response(context_data)
@@ -78,7 +79,8 @@ class AssetTransferView(FormView):
         form = AssetTransferNotesForm(request.POST)
         asset_transfer = AssetTransfer.objects.filter(
             to_user=request.user,
-            asset__unique_id=self.kwargs["uuid"]).last()
+            asset__unique_id=self.kwargs["uuid"],
+        ).last()
         notes = asset_transfer.notes.last()
         form_text = form.data.get("text", "")
         if notes is None and form_text != "":
@@ -101,8 +103,10 @@ class AssetTransferCancelView(DeleteView):
         """Render the form again, with current form data and custom context."""
         context = self.get_context_data(form=form)
         transfer = context["object"]
+        transfer.asset.current_holder = transfer.from_user
+        transfer.asset.save()
         transfer_id = transfer.id
-        transfer_from_user = transfer.from_user.username
+        transfer_from_user_name = transfer.from_user.username
         transfer.delete()
         context.pop("object")
         return redirect(
@@ -110,7 +114,7 @@ class AssetTransferCancelView(DeleteView):
                 "trakset:asset_transfer_cancel_success",
                 kwargs={
                     "deleted_transfer_id": transfer_id,
-                    "deleted_transfer_from_user": transfer_from_user,
+                    "deleted_transfer_from_user_name": transfer_from_user_name,
                 },
             ),
         )
@@ -139,7 +143,7 @@ class AssetTransferHistoryView(View):
             messages.info(request, "No assets found.")
         else:
             context = {"assets": assets}
-            if request.GET.get('deleted_cb') == 'on':
+            if request.GET.get("deleted_cb") == "on":
                 transfers = AssetTransfer.global_objects.filter(
                     asset=assets.first(),
                 ).order_by("-created")

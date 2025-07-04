@@ -43,19 +43,26 @@ class AssetAdmin(admin.ModelAdmin):
         "current_holder",
         "name",
         "description",
-        "type",
+        "type__name",
         "status",
-        "location",
+        "location__name",
         "serial_number",
         "qr_tag",
+        "transfers__to_user.username",
+        "transfers__from_user.username",
     )
-    search_fields = ("name", "description", "type", "status")
-    list_filter = ("type", "status")
+    search_fields = (
+        "name",
+        "description",
+        "type__name",
+        "status",
+        "location__name",
+        "transfers__to_user__username",
+        "transfers__from_user__username",
+    )
+    list_filter = ("type__name", "status", "location__name")
     ordering = ("-created",)
     readonly_fields = ("created", "last_updated")
-
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related("current_holder")
 
 
 @admin.register(AssetType)
@@ -85,8 +92,7 @@ class LocationAdmin(admin.ModelAdmin):
 @admin.register(AssetTransfer)
 class AssetTransferAdmin(admin.ModelAdmin):
     list_display = (
-        "id",
-        "asset",
+        "asset__name",
         "from_user",
         "to_user",
         "get_notes_text",
@@ -98,7 +104,7 @@ class AssetTransferAdmin(admin.ModelAdmin):
     search_fields = ("asset__name", "from_user__username", "to_user__username")
     list_filter = ("asset", "from_user", "to_user")
     ordering = ("-created",)
-    readonly_fields = ("created", "last_updated")
+    readonly_fields = ("created", "last_updated", "get_notes_text")
 
     @admin.display(description="Transfer Notes", ordering="asset_transfer__notes")
     def get_notes_text(self, obj):
@@ -110,12 +116,12 @@ class AssetTransferAdmin(admin.ModelAdmin):
         return format_html(html_string)
 
     def get_queryset(self, request):
-    #     return super().get_queryset(request).select_related("asset",
-    # "from_user", "to_user")
         qs = self.model.global_objects.get_queryset()
 
         # we need this from the superclass method
-        ordering = self.ordering or () # otherwise we might try to *None, which is bad ;)
+        ordering = (
+            self.ordering or ()
+        )  # otherwise we might try to *None, which is bad ;)
         if ordering:
             qs = qs.order_by(*ordering)
         return qs
