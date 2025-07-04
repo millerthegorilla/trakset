@@ -144,13 +144,40 @@ class AssetTransferHistoryView(View):
         else:
             context = {"assets": assets}
             if request.GET.get("deleted_cb") == "on":
-                transfers = AssetTransfer.global_objects.filter(
-                    asset=assets.first(),
-                ).order_by("-created")
+                transfers = (
+                    AssetTransfer.global_objects.select_related(
+                        "asset",
+                        "from_user",
+                        "to_user",
+                    )
+                    .prefetch_related("notes")
+                    .filter(
+                        asset=assets.first(),
+                    )
+                    .order_by("-created")
+                    .distinct()
+                )
             else:
-                transfers = AssetTransfer.objects.filter(
-                    asset=assets.first(),
-                ).order_by("-created")
+                transfers = (
+                    AssetTransfer.objects.select_related(
+                        "from_user",
+                        "to_user",
+                        "asset",
+                    )
+                    .prefetch_related("notes")
+                    .only(
+                        "from_user__username",
+                        "to_user__username",
+                        "asset__name",
+                        "asset__location__name",
+                        "asset_type__name",
+                    )
+                    .exclude("asset__location__id")
+                    .filter(
+                        asset=assets.first(),
+                    )
+                    .order_by("-created")
+                )
             if not transfers:
                 messages.info(request, "Asset has no asset transfer history.")
             else:

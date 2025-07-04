@@ -15,17 +15,20 @@ class AssetAdmin(admin.ModelAdmin):
     def qr_tag(self, obj):
         url = self.uri + f"trakset/asset_transfer/{obj.unique_id}/"
         url_short = f"{shortener.get_or_create(self.user, url, refresh=True)}"
-        final_url = f"{self.uri}s/{url_short}"
+        self.final_url = f"{self.uri}s/{url_short}"
         options = qrcode.utils.QRCodeOptions(image_format="svg", size=5)
         qrcode_url = qrcode.maker.make_embedded_qr_code(
-            final_url,
+            self.final_url,
             options,
             force_text=True,
             use_data_uri_for_svg=False,
             alt_text=url,
             class_names="qr-code",
         )
-        return format_html("{}<br><p><small>{}</small></p>", qrcode_url, final_url)
+        return format_html("{}", qrcode_url)
+
+    def transfer_url(self, obj):
+        return format_html("{}", self.final_url)
 
     def changelist_view(self, request, extra_context=None):
         self.user = request.user
@@ -36,7 +39,6 @@ class AssetAdmin(admin.ModelAdmin):
         )
 
     list_display = (
-        "id",
         "unique_id",
         "created",
         "last_updated",
@@ -48,9 +50,9 @@ class AssetAdmin(admin.ModelAdmin):
         "location__name",
         "serial_number",
         "qr_tag",
-        "transfers__to_user.username",
-        "transfers__from_user.username",
+        "transfer_url",
     )
+
     search_fields = (
         "name",
         "description",
@@ -64,11 +66,18 @@ class AssetAdmin(admin.ModelAdmin):
     ordering = ("-created",)
     readonly_fields = ("created", "last_updated")
 
+    def get_queryset(self, request):
+        return (
+            self.model.objects.select_related("type", "location", "current_holder")
+            .prefetch_related("transfers")
+            .defer("id")
+        )
+
 
 @admin.register(AssetType)
 class AssetTypeAdmin(admin.ModelAdmin):
-    list_display = ("id", "name")
-    search_fields = ("name",)
+    list_display = ("id", "name", "description")
+    search_fields = ("name", "description")
     ordering = ("-id",)
     readonly_fields = ("created", "last_updated")
 
@@ -79,8 +88,8 @@ class AssetTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Location)
 class LocationAdmin(admin.ModelAdmin):
-    list_display = ("id", "name")
-    search_fields = ("name",)
+    list_display = ("id", "name", "description")
+    search_fields = ("name", "description")
     ordering = ("-id",)
     readonly_fields = ("created", "last_updated")
 
@@ -92,6 +101,7 @@ class LocationAdmin(admin.ModelAdmin):
 @admin.register(AssetTransfer)
 class AssetTransferAdmin(admin.ModelAdmin):
     list_display = (
+        "id",
         "asset__name",
         "from_user",
         "to_user",
@@ -101,12 +111,17 @@ class AssetTransferAdmin(admin.ModelAdmin):
         "deleted_at",
         "last_updated",
     )
-    search_fields = ("asset__name", "from_user__username", "to_user__username")
-    list_filter = ("asset", "from_user", "to_user")
+    search_fields = (
+        "asset__name",
+        "from_user__username",
+        "to_user__username",
+        "notes__text",
+    )
+    list_filter = ("asset__name", "from_user__username", "to_user__username")
     ordering = ("-created",)
     readonly_fields = ("created", "last_updated", "get_notes_text")
 
-    @admin.display(description="Transfer Notes", ordering="asset_transfer__notes")
+    @admin.display(description="Transfer Notes", ordering="notes")
     def get_notes_text(self, obj):
         html_string = ""
         idx = 1
