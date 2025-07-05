@@ -7,6 +7,7 @@ from .models import Asset
 from .models import AssetTransfer
 from .models import AssetType
 from .models import Location
+from .models import Status
 
 
 # Register your models here.
@@ -38,15 +39,27 @@ class AssetAdmin(admin.ModelAdmin):
             extra_context=extra_context,
         )
 
+    @admin.display(description="Status")
+    def status_display_name(self, obj):
+        return str(obj.status.type)
+
+    @admin.display(description="Asset Type")
+    def type_name(self, obj):
+        return str(obj.type.name)
+
+    @admin.display(description="Description")
+    def asset_description(self, obj):
+        return str(obj.description)[:25] + "..."
+
     list_display = (
         "unique_id",
-        "created",
+        "created_at",
         "last_updated",
         "current_holder",
         "name",
-        "description",
-        "type__name",
-        "status",
+        "asset_description",
+        "type_name",
+        "status_display_name",
         "location__name",
         "serial_number",
         "qr_tag",
@@ -57,14 +70,14 @@ class AssetAdmin(admin.ModelAdmin):
         "name",
         "description",
         "type__name",
-        "status",
+        "status__type",
         "location__name",
         "transfers__to_user__username",
         "transfers__from_user__username",
     )
-    list_filter = ("type__name", "status", "location__name")
-    ordering = ("-created",)
-    readonly_fields = ("created", "last_updated")
+    list_filter = ("type__name", "status__type", "location__name")
+    ordering = ("-created_at",)
+    readonly_fields = ("created_at", "last_updated")
 
     def get_queryset(self, request):
         return (
@@ -79,11 +92,7 @@ class AssetTypeAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "description")
     search_fields = ("name", "description")
     ordering = ("-id",)
-    readonly_fields = ("created", "last_updated")
-
-    # def get_queryset(self, request):
-    #     return super().get_queryset(request).select_related("type_name",
-    # "type_description")
+    readonly_fields = ("created_at", "last_updated")
 
 
 @admin.register(Location)
@@ -91,11 +100,13 @@ class LocationAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "description")
     search_fields = ("name", "description")
     ordering = ("-id",)
-    readonly_fields = ("created", "last_updated")
+    readonly_fields = ("created_at", "last_updated")
 
-    # def get_queryset(self, request):
-    #     return super().get_queryset(request).select_related("location_name",
-    # "location_description")
+
+@admin.register(Status)
+class StatusAdmin(admin.ModelAdmin):
+    fields = ["type"]
+    list_display = ("type",)
 
 
 @admin.register(AssetTransfer)
@@ -106,7 +117,7 @@ class AssetTransferAdmin(admin.ModelAdmin):
         "from_user",
         "to_user",
         "get_notes_text",
-        "created",
+        "created_at",
         "is_deleted",
         "deleted_at",
         "last_updated",
@@ -118,8 +129,8 @@ class AssetTransferAdmin(admin.ModelAdmin):
         "notes__text",
     )
     list_filter = ("asset__name", "from_user__username", "to_user__username")
-    ordering = ("-created",)
-    readonly_fields = ("created", "last_updated", "get_notes_text")
+    ordering = ("-created_at",)
+    readonly_fields = ("created_at", "last_updated", "get_notes_text")
 
     @admin.display(description="Transfer Notes", ordering="notes")
     def get_notes_text(self, obj):

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+    <br />
+    <h2>How to use the Mind assets app...</h2>
+    <br />
+    <br />
+    <h3>
+        Open the camera on your phone, or your QR code scanner app,
+        and scan the QR Code on the item you wish to transfer to your name.
+    </h3>
+    <br />
+    <h4>
+        The app or the camera will present you with a web address, that you can
+        visit.  Click the web address to open it, and sign in to the assets app
+        if you are not already signed in.  When you sign in, click the checkbox
+        that is labelled 'Remember me', so that you won't have to sign in again.
+        <br />
+        <br />
+        As soon as you are signed in, the asset will be transferred to you.  If
+        you want to cancel the transfer, click the 'cancel' button, and confirm,
+        and the transfer will be cancelled.  If you have left the page and you
+        want to cancel the transfer, just scan the QR code again within {{ TRANSFER_TIMEOUT }} hours
+        of making the transfer, and you will be able to cancel the transfer from
+        the page you visit.
+    </br>
+    <br />
+    You can also add notes when you are making a transfer, or within {{ TRANSFER_TIMEOUT }} hours,
+    return to the transfer and update the notes attached to the transfer.
+</h4>
+<br />
+<br />
+<h3>What should I do if I don't have a phone?</h3>
+<br />
+<br />
+<h4>
+    If you don't have a phone, or your phone doesn't scan QR codes, then
+    ask the person that you are transferring from to scan the QR code, and
+    add a note to the transfer naming you as the current holder e.g.
+    <br />
+    <br />
+    <i>'Bob has received this key, but doesn't have a phone'</i>
+</h4>
+<br />
+<br />
+{% endblock content %}

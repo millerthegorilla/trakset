@@ -3,6 +3,12 @@
 {% block title %}
     Asset Transfer History
 {% endblock title %}
+{% block extra_css %}
+    <link href="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.3.2/b-3.2.3/date-1.5.5/fh-4.0.3/r-3.0.4/sc-2.4.3/sb-1.8.2/datatables.min.css"
+          rel="stylesheet"
+          integrity="sha384-KMoQCeiV+3SxpbpUGwziGzjrTVNt978NERKfvI6GtjR4SyJqIeodiIlSzOoBvO/b"
+          crossorigin="anonymous" />
+{% endblock extra_css %}
 {% block extra_javascript %}
     <script type="module" src="{% static 'js/sortable_table.js' %}" defer></script>
 {% endblock extra_javascript %}
@@ -29,7 +35,9 @@
             </div>
         </div>
         {% if transfers %}
-            <table id="sortableTable" class="table table-striped">
+            <table data-order='[[ 6, "desc" ]]'
+                   id="sortableTable"
+                   class="table table-striped">
                 <thead>
                     <tr class="sortable_row">
                         <th>Transfer id</th>
@@ -56,7 +64,7 @@
                             {% endwith %}
                             <td>{{ transfer.from_user.username }}</td>
                             <td>{{ transfer.to_user.username }}</td>
-                            <td>{{ transfer.created|date:"Y-m-d H:i:s" }}</td>
+                            <td>{{ transfer.created_at|date:"Y-m-d H:i:s" }}</td>
                             <td>{{ transfer.is_deleted }}</td>
                             <td>{{ transfer.deleted_at|date:"Y-m-d H:i:s" }}</td>
                         </tr>

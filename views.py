@@ -28,8 +28,11 @@ class AssetTransferView(FormView):
     def get(self, request, uuid, *args, **kwargs):
         super().get(request, *args, **kwargs)
         asset = Asset.objects.get(unique_id=uuid)
-        asset_transfers = AssetTransfer.objects.filter(asset=asset).order_by("-created")
-        asset_transfer = asset_transfers.first() if asset_transfers.exists() else None
+        asset_transfer = (
+            AssetTransfer.objects.order_by("created_at").last()
+            if AssetTransfer.objects.exists()
+            else None
+        )
         if (
             asset_transfer
             and asset_transfer.to_user == request.user
@@ -47,6 +50,7 @@ class AssetTransferView(FormView):
                 to_user=request.user,
             )
             asset.current_holder = request.user
+            asset.save()
         context_data = self.get_context_data(**kwargs)
         context_data["transfer"] = asset_transfer
         return self.render_to_response(context_data)
@@ -149,34 +153,51 @@ class AssetTransferHistoryView(View):
                         "asset",
                         "from_user",
                         "to_user",
+                        "asset__type",
+                        "asset__location",
+                        "asset__status",
                     )
-                    .prefetch_related("notes")
                     .filter(
                         asset=assets.first(),
                     )
-                    .order_by("-created")
-                    .distinct()
+                    .order_by("-created_at")
+                    .only(
+                        "id",
+                        "asset__id",
+                        "asset__name",
+                        "created_at",
+                        "from_user__username",
+                        "to_user__username",
+                        "asset__location__name",
+                        "asset__type__name",
+                        "asset__status__type",
+                    )
                 )
             else:
                 transfers = (
                     AssetTransfer.objects.select_related(
+                        "asset",
                         "from_user",
                         "to_user",
-                        "asset",
+                        "asset__type",
+                        "asset__location",
+                        "asset__status",
                     )
-                    .prefetch_related("notes")
-                    .only(
-                        "from_user__username",
-                        "to_user__username",
-                        "asset__name",
-                        "asset__location__name",
-                        "asset_type__name",
-                    )
-                    .exclude("asset__location__id")
                     .filter(
                         asset=assets.first(),
                     )
-                    .order_by("-created")
+                    .order_by("-created_at")
+                    .only(
+                        "id",
+                        "asset__id",
+                        "asset__name",
+                        "created_at",
+                        "from_user__username",
+                        "to_user__username",
+                        "asset__location__name",
+                        "asset__type__name",
+                        "asset__status__type",
+                    )
                 )
             if not transfers:
                 messages.info(request, "Asset has no asset transfer history.")
@@ -190,6 +211,6 @@ class AssetTransferHistoryView(View):
 
 
 class AssetTransferDetailView(DetailView):
-    model = AssetTransfer
     template_name = "asset_transfer_detail.html"
     context_object_name = "asset_transfer"
+    queryset = AssetTransfer.global_objects.all()
