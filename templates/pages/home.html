@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+    <br />
+    <h4>This is an administrative app for {{ APP_USER }}.</h4>
+    {% if not request.user.is_authenticated %}
+        <h4>You must be authenticated to use the site.</h4>
+    {% else %}
+        <h4>You can find instructions on the about page.</h4>
+    {% endif %}
+{% endblock content %}

@@ -39,11 +39,11 @@ class AssetAdmin(admin.ModelAdmin):
             extra_context=extra_context,
         )
 
-    @admin.display(description="Status")
+    @admin.display(description="Status", ordering="-type")
     def status_display_name(self, obj):
         return str(obj.status.type)
 
-    @admin.display(description="Asset Type")
+    @admin.display(description="Asset Type", ordering=("-name"))
     def type_name(self, obj):
         return str(obj.type.name)
 
@@ -114,15 +114,18 @@ class AssetTransferAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "asset__name",
+        "asset__current_holder",
         "from_user",
         "to_user",
         "get_notes_text",
         "created_at",
-        "is_deleted",
+        "has_been_deleted",
         "deleted_at",
+        "is_restored",
         "last_updated",
     )
     search_fields = (
+        "id",
         "asset__name",
         "from_user__username",
         "to_user__username",
@@ -131,6 +134,10 @@ class AssetTransferAdmin(admin.ModelAdmin):
     list_filter = ("asset__name", "from_user__username", "to_user__username")
     ordering = ("-created_at",)
     readonly_fields = ("created_at", "last_updated", "get_notes_text")
+
+    @admin.display(description="Is deleted", boolean=True)
+    def has_been_deleted(self, obj):
+        return obj.is_deleted
 
     @admin.display(description="Transfer Notes", ordering="notes")
     def get_notes_text(self, obj):
