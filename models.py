@@ -101,7 +101,7 @@ class Asset(models.Model):
         pass
 
     def __str__(self):
-        return str(self.pk)
+        return str(self.name)
 
     def get_absolute_url(self):
         return reverse("trakset_asset_detail", args=(self.pk,))
