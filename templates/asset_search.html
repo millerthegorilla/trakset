@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}
+    Asset Search
+{% endblock title %}
+{% block extra_css %}
+    <link href="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.3.2/b-3.2.3/date-1.5.5/fh-4.0.3/r-3.0.4/sc-2.4.3/sb-1.8.2/datatables.min.css"
+          rel="stylesheet"
+          integrity="sha384-KMoQCeiV+3SxpbpUGwziGzjrTVNt978NERKfvI6GtjR4SyJqIeodiIlSzOoBvO/b"
+          crossorigin="anonymous" />
+{% endblock extra_css %}
+{% block extra_javascript %}
+    <script type="module" src="{% static 'js/sortable_table.js' %}" defer></script>
+{% endblock extra_javascript %}
+{% block content %}
+    <div class="container">
+        <h1>Search</h1>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <form method="get" action="{% url 'trakset:asset_search' %}">
+                    {% csrf_token %}
+                    <div class="input-group d-flex flex-row">
+                        <div id="search_box" class="d-flex align-items-center w-100 pb-2">
+                            <input type="text"
+                                   name="search"
+                                   class="form-control"
+                                   placeholder="Search by asset name or ID"
+                                   value="{{ request.GET.search }}" />
+                            <button class="btn btn-primary" type="submit">Search</button>
+                        </div>
+                        <div class="d-flex justify-content-between w-100">
+                            <div class="d-flex justify-content-start">
+                                <input class="mx-2"
+                                       type="radio"
+                                       id="search_assets"
+                                       value="assets"
+                                       name="search_type"
+                                       checked="checked">
+                                <label for="search_assets">Search assets</label>
+                            </div>
+                            <div class="d-flex justify-content-end">
+                                <input class="mx-2"
+                                       type="radio"
+                                       id="search_transfers"
+                                       value="transfers"
+                                       name="search_type">
+                                <label for="search_transfers">Search asset transfers</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <input class="mx-2" type="checkbox" id="show_deleted" name="deleted_cb">
+                        <label for="show_deleted">Show deleted asset transfers?</label>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <br />
+        {% if search_type == "transfers" %}
+            {% if search_results %}
+                <div class="d-flex justify-content-center">
+                    <h3>
+                        Asset transfer history for <i>{{ search_results.first.asset.name }}</i>
+                    </h3>
+                </div>
+            </br>
+            <div class="d-flex justify-content-center">
+                <h4>
+                    Current holder of asset is <i>{{ search_results.first.asset.current_holder }}</i>
+                </h4>
+            </div>
+        </br>
+        <table data-order='[[ 6, "desc" ]]'
+               id="sortableTable"
+               class="table table-striped">
+            <thead>
+                <tr class="sortable_row">
+                    <th>Transfer id</th>
+                    <th>Asset Name</th>
+                    <th>Asset Location</th>
+                    <th>Asset Type</th>
+                    <th>From User</th>
+                    <th>To User</th>
+                    <th>Date Transferred</th>
+                    <th>Has been deleted</th>
+                    <th>Date deleted</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for result in search_results %}
+                    <tr>
+                        <td>
+                            {% comment %} <a href="{% url 'trakset:asset_transfer_detail_view' result.pk %}">{{ result.id }}</a> {% endcomment %}
+                        </td>
+                        {% with ta=result.asset %}
+                            <td>{{ ta.name }}</td>
+                            <td>{{ ta.location.name }}</td>
+                            <td>{{ ta.type.name }}</td>
+                        {% endwith %}
+                        <td>{{ result.from_user.username }}</td>
+                        <td>{{ result.to_user.username }}</td>
+                        <td>{{ result.created_at|date:"Y-m-d H:i:s" }}</td>
+                        <td>{{ result.is_deleted }}</td>
+                        <td>{{ result.deleted_at|date:"Y-m-d H:i:s" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="container">
+            <h2>No results found.</h2>
+        </div>
+    {% endif %}
+{% elif search_type == "assets" %}
+    {% if search_results %}
+        <div class="d-flex justify-content-center">
+            <h3>
+                Asset description for <i>{{ search_results.first.name }}</i>
+            </h3>
+        </div>
+    </br>
+    <div class="d-flex justify-content-center">
+        <h4>
+            Current holder of asset is <i>{{ search_results.first.current_holder }}</i>
+        </h4>
+    </div>
+</br>
+<table data-order='[[ 2, "desc" ]]'
+       id="sortableTable"
+       class="table table-striped">
+    <thead>
+        <tr class="sortable_row">
+            <th>Asset ID</th>
+            <th>Asset Name</th>
+            <th>Description</th>
+            <th>Asset Location</th>
+            <th>Asset Type</th>
+            <th>Serial Number</th>
+            <th>Current Holder</th>
+            <th>Created At</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for result in search_results %}
+            <tr>
+                {% with asset=result %}
+                    <td>{{ asset.id }}</td>
+                    <td>{{ asset.name }}</td>
+                    <td>{{ asset.description }}</td>
+                    <td>{{ asset.location.name }}</td>
+                    <td>{{ asset.type.name }}</td>
+                    <td>{{ asset.serial_number }}</td>
+                    <td>{{ asset.current_holder.username }}</td>
+                    <td>{{ asset.created_at|date:"Y-m-d H:i:s" }}</td>
+                {% endwith %}
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="container">
+    <h2>No results found.</h2>
+</div>
+{% endif %}
+{% endif %}
+<!-- Pagination -->
+{% if is_paginated %}
+    <nav aria-label="Page navigation">
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link"
+                       href="?page={{ page_obj.previous_page_number }}&search={{ request.GET.search }}">Previous</a>
+                </li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+                <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                    <a class="page-link"
+                       href="?page={{ num }}&search={{ request.GET.search }}">{{ num }}</a>
+                </li>
+            {% endfor %}
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link"
+                       href="?page={{ page_obj.next_page_number }}&search={{ request.GET.search }}">Next</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+{% endif %}
+</div>
+{% endblock content %}

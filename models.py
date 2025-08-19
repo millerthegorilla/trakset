@@ -67,13 +67,32 @@ class Status(models.Model):
         return str(self.type)
 
 
+def get_admin_for_default():
+    """Get the default admin user for the current environment."""
+    try:
+        return User.objects.get(username="admin").id
+    except User.DoesNotExist:
+        return None  # Handle case where admin user does not exist
+
+
 class Asset(models.Model):
     # Fields
     id = models.AutoField(primary_key=True, unique=True)
     unique_id = models.UUIDField(default=uuid.uuid4, editable=False)
     created_at = models.DateTimeField(auto_now_add=True, editable=False)
     last_updated = models.DateTimeField(auto_now=True, editable=False)
-    current_holder = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
+    send_user_email_on_transfer = models.ManyToManyField(
+        User,
+        related_name="send_user_email_on_transfer",
+        blank=True,
+    )
+    current_holder = models.ForeignKey(
+        User,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        related_name="current_holder",
+        default=get_admin_for_default,
+    )
     name = models.CharField(max_length=255, blank=False, null=False)
     description = models.TextField(blank=True, default="")
     serial_number = models.CharField(max_length=100, blank=True, default="")
@@ -118,19 +137,19 @@ class AssetTransfer(SoftDeleteModel):
     asset = models.ForeignKey(
         Asset,
         null=False,
-        on_delete=models.CASCADE,
+        on_delete=models.DO_NOTHING,
         related_name="transfers",
     )
     from_user = models.ForeignKey(
         User,
         null=False,
-        on_delete=models.CASCADE,
+        on_delete=models.DO_NOTHING,
         related_name="transfers_from",
     )
     to_user = models.ForeignKey(
         User,
         null=False,
-        on_delete=models.CASCADE,
+        on_delete=models.DO_NOTHING,
         related_name="transfers_to",
     )
 

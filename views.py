@@ -11,6 +11,8 @@ from django.views.generic import FormView
 from django.views.generic import View
 from django.views.generic.edit import DeleteView
 
+from trakset_app.tasks import email_users_on_asset_transfer
+
 from .forms import AssetTransferNotesForm
 from .models import Asset
 from .models import AssetTransfer
@@ -49,6 +51,8 @@ class AssetTransferView(FormView):
                 from_user=asset.current_holder,
                 to_user=request.user,
             )
+            if asset_transfer.asset.send_user_email_on_transfer.exists():
+                email_users_on_asset_transfer.delay(asset_transfer.id)
             asset.current_holder = request.user
             asset.save()
         context_data = self.get_context_data(**kwargs)
@@ -127,8 +131,8 @@ class AssetTransferCancelView(DeleteView):
 # a view to choose an asset and view its asset_transfer history
 @method_decorator(login_required, name="dispatch")
 @method_decorator(staff_member_required, name="dispatch")
-class AssetTransferHistoryView(View):
-    template_name = "asset_transfer_history.html"
+class AssetSearchView(View):
+    template_name = "asset_search.html"
 
     def get(self, request, *args, **kwargs):
         context = {}
@@ -146,67 +150,98 @@ class AssetTransferHistoryView(View):
         if not assets:
             messages.info(request, "No assets found.")
         else:
-            context = {"assets": assets}
-            if request.GET.get("deleted_cb") == "on":
-                transfers = (
-                    AssetTransfer.global_objects.select_related(
-                        "asset",
-                        "from_user",
-                        "to_user",
-                        "asset__type",
-                        "asset__location",
-                        "asset__status",
+            context.update(
+                {"assets": assets, "search_type": request.GET.get("search_type")},
+            )
+            if request.GET.get("search_type") == "transfers":
+                if request.GET.get("deleted_cb") == "on":
+                    search_results = (
+                        AssetTransfer.global_objects.select_related(
+                            "asset",
+                            "from_user",
+                            "to_user",
+                            "asset__type",
+                            "asset__location",
+                            "asset__status",
+                        )
+                        .filter(
+                            asset=assets.first(),
+                        )
+                        .order_by("-created_at")
+                        .only(
+                            "id",
+                            "asset__id",
+                            "asset__name",
+                            "created_at",
+                            "from_user__username",
+                            "to_user__username",
+                            "asset__location__name",
+                            "asset__type__name",
+                            "asset__status__type",
+                        )
+                    )
+                else:
+                    search_results = (
+                        AssetTransfer.objects.select_related(
+                            "asset",
+                            "from_user",
+                            "to_user",
+                            "asset__type",
+                            "asset__location",
+                            "asset__status",
+                        )
+                        .filter(
+                            asset=assets.first(),
+                        )
+                        .order_by("-created_at")
+                        .only(
+                            "id",
+                            "asset__id",
+                            "asset__name",
+                            "created_at",
+                            "from_user__username",
+                            "to_user__username",
+                            "asset__location__name",
+                            "asset__type__name",
+                            "asset__status__type",
+                        )
+                    )
+                if not search_results:
+                    messages.info(request, "Asset has no asset transfer history.")
+                else:
+                    context.update(
+                        {
+                            "search_results": search_results,
+                        },
+                    )
+            elif request.GET.get("search_type") == "assets":
+                search_results = (
+                    Asset.objects.select_related(
+                        "type",
+                        "location",
+                        "status",
                     )
                     .filter(
-                        asset=assets.first(),
+                        id=assets.first().id,
                     )
                     .order_by("-created_at")
                     .only(
-                        "id",
-                        "asset__id",
-                        "asset__name",
+                        "current_holder",
+                        "name",
                         "created_at",
-                        "from_user__username",
-                        "to_user__username",
-                        "asset__location__name",
-                        "asset__type__name",
-                        "asset__status__type",
+                        "location__name",
+                        "type__name",
+                        "status__type",
                     )
                 )
-            else:
-                transfers = (
-                    AssetTransfer.objects.select_related(
-                        "asset",
-                        "from_user",
-                        "to_user",
-                        "asset__type",
-                        "asset__location",
-                        "asset__status",
+                if not search_results:
+                    messages.info(request, "Error, unable to find asset.")
+                else:
+                    context.update(
+                        {
+                            "search_results": search_results,
+                        },
                     )
-                    .filter(
-                        asset=assets.first(),
-                    )
-                    .order_by("-created_at")
-                    .only(
-                        "id",
-                        "asset__id",
-                        "asset__name",
-                        "created_at",
-                        "from_user__username",
-                        "to_user__username",
-                        "asset__location__name",
-                        "asset__type__name",
-                        "asset__status__type",
-                    )
-                )
-            if not transfers:
-                messages.info(request, "Asset has no asset transfer history.")
-            else:
-                context.update(
-                    {
-                        "transfers": transfers,
-                    },
-                )
         return render(request, self.template_name, context)
 
 

@@ -14,10 +14,10 @@ from .models import Status
 @admin.register(Asset)
 class AssetAdmin(admin.ModelAdmin):
     def qr_tag(self, obj):
-        url = self.uri + f"trakset/asset_transfer/{obj.unique_id}/"
+        url = self.uri + f"trakset/assets/transfer/{obj.unique_id}/"
         url_short = f"{shortener.get_or_create(self.user, url, refresh=True)}"
         self.final_url = f"{self.uri}s/{url_short}"
-        options = qrcode.utils.QRCodeOptions(image_format="svg", size=5)
+        options = qrcode.utils.QRCodeOptions(image_format="png", size=5)
         qrcode_url = qrcode.maker.make_embedded_qr_code(
             self.final_url,
             options,
@@ -51,6 +51,15 @@ class AssetAdmin(admin.ModelAdmin):
     def asset_description(self, obj):
         return str(obj.description)[:25] + "..."
 
+    @admin.display(
+        description="Users to Email on Transfer",
+    )
+    @admin.display(description="Email Users on Transfer")
+    def get_send_user_email_on_transfer(self, obj):
+        return ", ".join(
+            [user.username for user in obj.send_user_email_on_transfer.all()],
+        )
+
     list_display = (
         "unique_id",
         "created_at",
@@ -62,6 +71,7 @@ class AssetAdmin(admin.ModelAdmin):
         "status_display_name",
         "location__name",
         "serial_number",
+        "get_send_user_email_on_transfer",
         "qr_tag",
         "transfer_url",
     )
@@ -78,6 +88,7 @@ class AssetAdmin(admin.ModelAdmin):
     list_filter = ("type__name", "status__type", "location__name")
     ordering = ("-created_at",)
     readonly_fields = ("created_at", "last_updated")
+    filter_horizontal = ("send_user_email_on_transfer",)
 
     def get_queryset(self, request):
         return (
