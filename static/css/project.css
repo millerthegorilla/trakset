@@ -1,0 +1,42 @@
+/* These styles are generated from project.scss. */
+
+.alert-debug {
+  color: black;
+  background-color: white;
+  border-color: #d6e9c6;
+}
+
+.alert-error {
+  color: #b94a48;
+  background-color: #f2dede;
+  border-color: #eed3d7;
+}
+
+:root {
+  --primary-color: #1300c1;
+  --secondary-color: #0bf6ea;
+  --success-color: #40c00e;
+  --info-color: #16c0e2;
+  --warning-color: #d97517;
+  --danger-color: #eb0c0c;
+  --bs-light-rgb:var(--primary-color);
+}
+
+.navbar-custom {
+  background-color: #1300c1
+}
+
+.nav-link:hover {
+  color: #ffcdd9;
+}
+
+.roboto-mono-navbar {
+  font-family: "Roboto Mono", monospace;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.title-bar {
+  height: 100px;
+}

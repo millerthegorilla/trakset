@@ -137,10 +137,15 @@ class AssetTransferAdmin(admin.ModelAdmin):
     )
     search_fields = (
         "id",
+        "asset__current_holder__username",
+        "asset__current_holder__email",
+        "asset__location__name",
+        "asset__type__name",
+        "asset__status__type",
+        "asset__serial_number",
         "asset__name",
         "from_user__username",
         "to_user__username",
-        "notes__text",
     )
     list_filter = ("asset__name", "from_user__username", "to_user__username")
     ordering = ("-created_at",)

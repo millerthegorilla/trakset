@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.contrib.postgres.search import TrigramSimilarity
+from django.db import transaction
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.urls import reverse
@@ -11,12 +12,11 @@ from django.views.generic import FormView
 from django.views.generic import View
 from django.views.generic.edit import DeleteView
 
-from trakset_app.tasks import email_users_on_asset_transfer
-
 from .forms import AssetTransferNotesForm
 from .models import Asset
 from .models import AssetTransfer
 from .models import AssetTransferNotes
+from .tasks import email_users_on_asset_transfer
 
 
 # Create your views here.
@@ -52,7 +52,9 @@ class AssetTransferView(FormView):
                 to_user=request.user,
             )
             if asset_transfer.asset.send_user_email_on_transfer.exists():
-                email_users_on_asset_transfer.delay(asset_transfer.id)
+                transaction.on_commit(
+                    lambda: email_users_on_asset_transfer.delay(asset_transfer.id),
+                )
             asset.current_holder = request.user
             asset.save()
         context_data = self.get_context_data(**kwargs)
