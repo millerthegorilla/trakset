@@ -1,3 +1,5 @@
 .cache
 .cache/**
 .pre-commit-config.yaml
+**/templates/admin
+**/templates/admin/**

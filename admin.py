@@ -60,10 +60,15 @@ class AssetAdmin(admin.ModelAdmin):
             [user.username for user in obj.send_user_email_on_transfer.all()],
         )
 
+    @admin.display(description="Is deleted", boolean=True)
+    def has_been_deleted(self, obj):
+        return obj.is_deleted
+
     list_display = (
         "unique_id",
         "created_at",
         "last_updated",
+        "has_been_deleted",
         "current_holder",
         "name",
         "asset_description",
@@ -83,20 +88,34 @@ class AssetAdmin(admin.ModelAdmin):
         "type__name",
         "status__type",
         "location__name",
+        "has_been_deleted",
+        "serial_number",
+        "security_tag_number",
+        "current_holder__username",
         "transfers__to_user__username",
         "transfers__from_user__username",
     )
     list_filter = ("type__name", "status__type", "location__name")
-    ordering = ("-created_at",)
+    ordering = ("-deleted_at",)
     readonly_fields = ("created_at", "last_updated")
     filter_horizontal = ("send_user_email_on_transfer",)
 
     def get_queryset(self, request):
-        return (
-            self.model.objects.select_related("type", "location", "current_holder")
+        qs = (
+            self.model.global_objects.select_related(
+                "type",
+                "location",
+                "current_holder",
+            )
             .prefetch_related("transfers")
             .defer("id")
         )
+        ordering = (
+            self.ordering or ()
+        )  # otherwise we might try to *None, which is bad ;)
+        if ordering:
+            qs = qs.order_by(*ordering)
+        return qs
 
 
 @admin.register(AssetType)

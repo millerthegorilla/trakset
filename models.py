@@ -75,7 +75,7 @@ def get_admin_for_default():
         return None  # Handle case where admin user does not exist
 
 
-class Asset(models.Model):
+class Asset(SoftDeleteModel):
     # Fields
     id = models.AutoField(primary_key=True, unique=True)
     unique_id = models.UUIDField(default=uuid.uuid4, editable=False)
