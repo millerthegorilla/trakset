@@ -96,6 +96,11 @@ class Asset(models.Model):
     name = models.CharField(max_length=255, blank=False, null=False)
     description = models.TextField(blank=True, default="")
     serial_number = models.CharField(max_length=100, blank=True, default="")
+    security_tag_number = models.PositiveIntegerField(
+        blank=True,
+        unique=True,
+        null=True,
+    )
     type = models.ForeignKey(
         AssetType,
         null=False,
