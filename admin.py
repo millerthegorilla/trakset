@@ -46,8 +46,7 @@ class AssetAdmin(GlobalObjectsModelAdmin):
 
     @admin.display(description="Asset Type", ordering=("-name"))
     def asset_type_name(self, obj):
-        # the thing is return str(obj.asset_type.name)
-        return ""
+        return str(obj.asset_type.name)
 
     @admin.display(description="Description")
     def asset_description(self, obj):
