@@ -95,7 +95,7 @@ class AssetAdmin(GlobalObjectsModelAdmin):
         "transfers__to_user__username",
         "transfers__from_user__username",
     )
-    list_filter = ("type__name", "status__status_type", "location__name")
+    list_filter = ("asset_type__name", "status__status_type", "location__name")
     ordering = ("-deleted_at",)
     readonly_fields = ("created_at", "last_updated")
     filter_horizontal = ("send_user_email_on_transfer",)

@@ -219,7 +219,7 @@ class AssetTransferProxy(AssetTransfer):
         verbose_name_plural = "Asset Transfers"
 
 
-class AssetTransferNotes(models.Model):
+class AssetTransferNotes(SoftDeleteModel):
     # Fields
     id = models.AutoField(primary_key=True, unique=True)
     text = models.TextField(blank=True, default="")
