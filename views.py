@@ -16,6 +16,7 @@ from .forms import AssetTransferNotesForm
 from .models import Asset
 from .models import AssetTransfer
 from .models import AssetTransferNotes
+from .tasks import email_admin_on_error
 from .tasks import email_users_on_asset_transfer
 
 
@@ -27,12 +28,45 @@ class AssetTransferView(FormView):
     template_name = "asset_transfer.html"
     success_url = "asset_transfer_success.html"
 
+    def get_asset(self, uuid: str):
+        """Get the asset, handling errors and emailing admin if needed."""
+        ep = ""
+        asset = None
+        try:
+            asset = Asset.objects.get(unique_id=self.kwargs["uuid"])
+        except Asset.DoesNotExist:
+            try:
+                asset = Asset.global_objects.get(unique_id=self.kwargs["uuid"])
+                msg1 = "soft-deleted"
+                msg2 = "This probably means that the asset needs to be restored."
+            except Asset.DoesNotExist:
+                msg1 = "non-existent"
+                msg2 = "The asset has probably been hard deleted, and should \
+                        be re-created."
+                ep = "trakset:asset_search" if self.request.user.is_staff else "about"
+                messages.error(
+                    self.request,
+                    "Asset not found.  This issue \
+                                              has been reported.",
+                )
+            finally:
+                email_admin_on_error.delay(
+                    f"User {self.request.user.username} tried to access a \
+                     {msg1} asset with id {self.kwargs['uuid']}. {msg2}",
+                )
+        return asset, ep
+
     def get(self, request, uuid, *args, **kwargs):
         super().get(request, *args, **kwargs)
-        asset = Asset.objects.get(unique_id=uuid)
+        asset, ep = self.get_asset(uuid=uuid)
+        if asset is None:
+            if ep:
+                return redirect(ep)
+            return redirect("about")
+
         asset_transfer = (
-            AssetTransfer.objects.order_by("created_at").last()
-            if AssetTransfer.objects.exists()
+            AssetTransfer.global_objects.order_by("created_at").last()
+            if AssetTransfer.global_objects.exists()
             else None
         )
         if (
@@ -57,7 +91,12 @@ class AssetTransferView(FormView):
                 )
             asset.current_holder = request.user
             asset.save()
-        context_data = self.get_context_data(**kwargs)
+        context_data = self.get_context_data(asset=asset, **kwargs)
+        context_data["asset_name"] = asset.name
+        context_data["asset_location"] = (
+            asset.location.name if asset.location else "Not set"
+        )
+        context_data["asset_id"] = str(self.kwargs["uuid"])
         context_data["transfer"] = asset_transfer
         return self.render_to_response(context_data)
 
@@ -75,15 +114,6 @@ class AssetTransferView(FormView):
             text=asset_transfer_text,
         )
         return AssetTransferNotesForm(instance=asset_transfer_notes)
-
-    def get_context_data(self, **kwargs):
-        super().get_context_data(**kwargs)
-        asset = Asset.objects.get(unique_id=self.kwargs["uuid"])
-        context = super().get_context_data(**kwargs)
-        context["asset_name"] = asset.name
-        context["asset_location"] = asset.location.name
-        context["asset_id"] = str(self.kwargs["uuid"])
-        return context
 
     def post(self, request, uuid):
         form = AssetTransferNotesForm(request.POST)
@@ -129,6 +159,53 @@ class AssetTransferCancelView(DeleteView):
             ),
         )
 
+    def get_object(self, queryset=None):
+        """
+        Return the object the view is displaying.
+        Require `self.queryset` and a `pk` or `slug` argument in the URLconf.
+        Subclasses can override this to return any object.
+        """
+        # Use a custom queryset if provided; this is required for subclasses
+        # like DateDetailView
+        if queryset is None:
+            queryset = self.get_queryset()
+        # Next, try looking up by primary key.
+        pk = self.kwargs.get(self.pk_url_kwarg)
+        slug = self.kwargs.get(self.slug_url_kwarg)
+        if pk is not None:
+            queryset = queryset.filter(pk=pk)
+        # Next, try looking up by slug.
+        if slug is not None and (pk is None or self.query_pk_and_slug):
+            slug_field = self.get_slug_field()
+            queryset = queryset.filter(**{slug_field: slug})
+        # If none of those are defined, it's an error.
+        if pk is None and slug is None:
+            message = (
+                f"Generic detail view {self.__class__.__name__}"
+                "must be called with either an object "
+                "pk or a slug in the URLconf."
+            )
+            raise AttributeError(
+                message,
+            )
+        try:
+            # Get the single item from the filtered queryset
+            obj = queryset.get()
+        except queryset.model.DoesNotExist:
+            messages.warning(
+                self.request,
+                "AssetTransfer matching the query does not exist",
+            )
+            return None
+        return obj
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if self.object is not None:
+            context = super().get_context_data(**kwargs)
+            return render(request, self.template_name, context)
+        return redirect("about")
+
 
 # a view to choose an asset and view its asset_transfer history
 @method_decorator(login_required, name="dispatch")
@@ -162,7 +239,7 @@ class AssetSearchView(View):
                             "asset",
                             "from_user",
                             "to_user",
-                            "asset__type",
+                            "asset__asset_type",
                             "asset__location",
                             "asset__status",
                         )
@@ -178,8 +255,8 @@ class AssetSearchView(View):
                             "from_user__username",
                             "to_user__username",
                             "asset__location__name",
-                            "asset__type__name",
-                            "asset__status__type",
+                            "asset__asset_type__name",
+                            "asset__status__status_type",
                         )
                     )
                 else:
@@ -188,7 +265,7 @@ class AssetSearchView(View):
                             "asset",
                             "from_user",
                             "to_user",
-                            "asset__type",
+                            "asset__asset_type",
                             "asset__location",
                             "asset__status",
                         )
@@ -204,8 +281,8 @@ class AssetSearchView(View):
                             "from_user__username",
                             "to_user__username",
                             "asset__location__name",
-                            "asset__type__name",
-                            "asset__status__type",
+                            "asset__asset_type__name",
+                            "asset__status__status_type",
                         )
                     )
                 if not search_results:
@@ -219,7 +296,7 @@ class AssetSearchView(View):
             elif request.GET.get("search_type") == "assets":
                 search_results = (
                     Asset.objects.select_related(
-                        "type",
+                        "asset_type",
                         "location",
                         "status",
                     )
@@ -232,8 +309,8 @@ class AssetSearchView(View):
                         "name",
                         "created_at",
                         "location__name",
-                        "type__name",
-                        "status__type",
+                        "asset_type__name",
+                        "status__status_type",
                     )
                 )
                 if not search_results:

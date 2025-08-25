@@ -1,18 +1,19 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django_softdelete.admin import GlobalObjectsModelAdmin
 from qr_code import qrcode
 from shortener import shortener
 
-from .models import Asset
-from .models import AssetTransfer
-from .models import AssetType
-from .models import Location
-from .models import Status
+from .models import AssetProxy
+from .models import AssetTransferProxy
+from .models import AssetTypeProxy
+from .models import LocationProxy
+from .models import StatusProxy
 
 
 # Register your models here.
-@admin.register(Asset)
-class AssetAdmin(admin.ModelAdmin):
+@admin.register(AssetProxy)
+class AssetAdmin(GlobalObjectsModelAdmin):
     def qr_tag(self, obj):
         url = self.uri + f"trakset/assets/transfer/{obj.unique_id}/"
         url_short = f"{shortener.get_or_create(self.user, url, refresh=True)}"
@@ -39,13 +40,13 @@ class AssetAdmin(admin.ModelAdmin):
             extra_context=extra_context,
         )
 
-    @admin.display(description="Status", ordering="-type")
+    @admin.display(description="Status", ordering="-asset_type")
     def status_display_name(self, obj):
-        return str(obj.status.type)
+        return str(obj.status.status_type)
 
     @admin.display(description="Asset Type", ordering=("-name"))
-    def type_name(self, obj):
-        return str(obj.type.name)
+    def asset_type_name(self, obj):
+        return str(obj.asset_type.name)
 
     @admin.display(description="Description")
     def asset_description(self, obj):
@@ -72,7 +73,7 @@ class AssetAdmin(admin.ModelAdmin):
         "current_holder",
         "name",
         "asset_description",
-        "type_name",
+        "asset_type_name",
         "status_display_name",
         "location__name",
         "serial_number",
@@ -85,25 +86,25 @@ class AssetAdmin(admin.ModelAdmin):
     search_fields = (
         "name",
         "description",
-        "type__name",
-        "status__type",
+        "asset_type__name",
+        "status__status_type",
         "location__name",
-        "has_been_deleted",
         "serial_number",
         "security_tag_number",
         "current_holder__username",
         "transfers__to_user__username",
         "transfers__from_user__username",
     )
-    list_filter = ("type__name", "status__type", "location__name")
+    list_filter = ("type__name", "status__status_type", "location__name")
     ordering = ("-deleted_at",)
     readonly_fields = ("created_at", "last_updated")
     filter_horizontal = ("send_user_email_on_transfer",)
+    exclude = ("deleted_at", "restored_at", "transaction_id")
 
     def get_queryset(self, request):
         qs = (
             self.model.global_objects.select_related(
-                "type",
+                "asset_type",
                 "location",
                 "current_holder",
             )
@@ -118,30 +119,80 @@ class AssetAdmin(admin.ModelAdmin):
         return qs
 
 
-@admin.register(AssetType)
-class AssetTypeAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "description")
+@admin.register(AssetTypeProxy)
+class TypeAdmin(GlobalObjectsModelAdmin):
     search_fields = ("name", "description")
     ordering = ("-id",)
     readonly_fields = ("created_at", "last_updated")
+    exclude = ("deleted_at", "restored_at", "transaction_id")
+
+    @admin.display(description="Is deleted", boolean=True)
+    def has_been_deleted(self, obj):
+        return obj.is_deleted
+
+    list_display = ("id", "name", "description", "has_been_deleted")
+
+    def get_queryset(self, request):
+        qs = self.model.global_objects.get_queryset()
+
+        # we need this from the superclass method
+        ordering = (
+            self.ordering or ()
+        )  # otherwise we might try to *None, which is bad ;)
+        if ordering:
+            qs = qs.order_by(*ordering)
+        return qs
 
 
-@admin.register(Location)
-class LocationAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "description")
+@admin.register(LocationProxy)
+class LocationAdmin(GlobalObjectsModelAdmin):
+    list_display = ("id", "name", "description", "has_been_deleted")
     search_fields = ("name", "description")
     ordering = ("-id",)
     readonly_fields = ("created_at", "last_updated")
+    exclude = ("deleted_at", "restored_at", "transaction_id")
+
+    @admin.display(description="Is deleted", boolean=True)
+    def has_been_deleted(self, obj):
+        return obj.is_deleted
+
+    def get_queryset(self, request):
+        qs = self.model.global_objects.get_queryset()
+
+        # we need this from the superclass method
+        ordering = (
+            self.ordering or ()
+        )  # otherwise we might try to *None, which is bad ;)
+        if ordering:
+            qs = qs.order_by(*ordering)
+        return qs
 
 
-@admin.register(Status)
-class StatusAdmin(admin.ModelAdmin):
-    fields = ["type"]
-    list_display = ("type",)
+@admin.register(StatusProxy)
+class StatusAdmin(GlobalObjectsModelAdmin):
+    fields = ["status_type"]
+    list_display = ("status_type", "has_been_deleted")
+    exclude = ("deleted_at", "restored_at", "transaction_id")
+
+    @admin.display(description="Is deleted", boolean=True)
+    def has_been_deleted(self, obj):
+        return obj.is_deleted
+
+    def get_queryset(self, request):
+        qs = self.model.global_objects.get_queryset()
+
+        # we need this from the superclass method
+        ordering = (
+            self.ordering or ()
+        )  # otherwise we might try to *None, which is bad ;)
+        if ordering:
+            qs = qs.order_by(*ordering)
+        return qs
 
 
-@admin.register(AssetTransfer)
-class AssetTransferAdmin(admin.ModelAdmin):
+@admin.register(AssetTransferProxy)
+class AssetTransferAdmin(GlobalObjectsModelAdmin):
+    list_display_links = None
     list_display = (
         "id",
         "asset__name",
@@ -160,8 +211,8 @@ class AssetTransferAdmin(admin.ModelAdmin):
         "asset__current_holder__username",
         "asset__current_holder__email",
         "asset__location__name",
-        "asset__type__name",
-        "asset__status__type",
+        "asset__asset_type__name",
+        "asset__status__status_type",
         "asset__serial_number",
         "asset__security_tag_number",
         "asset__name",
@@ -171,6 +222,8 @@ class AssetTransferAdmin(admin.ModelAdmin):
     list_filter = ("asset__name", "from_user__username", "to_user__username")
     ordering = ("-created_at",)
     readonly_fields = ("created_at", "last_updated", "get_notes_text")
+    exclude = ("deleted_at", "restored_at", "transaction_id")
+    actions = ["soft_delete_selected", "restore_selected"]
 
     @admin.display(description="Is deleted", boolean=True)
     def has_been_deleted(self, obj):

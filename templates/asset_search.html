@@ -95,7 +95,7 @@
                         {% with ta=result.asset %}
                             <td>{{ ta.name }}</td>
                             <td>{{ ta.location.name }}</td>
-                            <td>{{ ta.type.name }}</td>
+                            <td>{{ ta.asset_type.name }}</td>
                         {% endwith %}
                         <td>{{ result.from_user.username }}</td>
                         <td>{{ result.to_user.username }}</td>
@@ -148,7 +148,7 @@
                     <td>{{ asset.name }}</td>
                     <td>{{ asset.description }}</td>
                     <td>{{ asset.location.name }}</td>
-                    <td>{{ asset.type.name }}</td>
+                    <td>{{ asset.asset_type.name }}</td>
                     <td>{{ asset.serial_number }}</td>
                     <td>{{ asset.current_holder.username }}</td>
                     <td>{{ asset.created_at|date:"Y-m-d H:i:s" }}</td>

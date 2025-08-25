@@ -2,6 +2,22 @@ from celery import shared_task
 from django.core.mail import send_mail
 
 from trakset.models import AssetTransfer
+from trakset_app.users.models import User
+
+
+@shared_task()
+def email_admin_on_error(error_message):
+    """Email the admin user when an error is encountered."""
+    emails = [
+        user.email for user in User.objects.filter(is_superuser=True) if user.email
+    ]
+    send_mail(
+        "An error occurred in trakset!",
+        f"Hey from trakset!\n\nError details:\n{error_message}",
+        "webmaster@mindq.co.uk",
+        emails,
+    )
+    return "Admin emailed on error."
 
 
 @shared_task()
